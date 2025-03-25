@@ -61,19 +61,51 @@ export async function registerUser(
   // Create user profile in the users table
   if (data.user) {
     try {
-      const { error: profileError } = await supabase.from("users").insert({
-        id: data.user.id,
-        name: userData.fullName,
-        full_name: userData.fullName,
-        email: userData.email,
-        user_id: data.user.id,
-        token_identifier: data.user.id,
-        created_at: new Date().toISOString(),
-      });
+      // First check if user already exists to avoid duplicate key errors
+      const { data: existingUser, error: checkError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", data.user.id)
+        .single();
 
-      if (profileError) {
-        console.error("Error creating user profile:", profileError);
-        // We don't return an error here as the auth account was created successfully
+      if (checkError && checkError.code !== "PGRST116") {
+        // PGRST116 means no rows returned
+        console.error("Error checking for existing user:", checkError);
+      }
+
+      // Only insert if user doesn't exist
+      if (!existingUser) {
+        const { error: profileError } = await supabase.from("users").insert({
+          id: data.user.id,
+          name: userData.fullName,
+          full_name: userData.fullName,
+          email: userData.email,
+          user_id: data.user.id,
+          token_identifier: data.user.id,
+          created_at: new Date().toISOString(),
+        });
+
+        if (profileError) {
+          console.error("Error creating user profile:", profileError);
+          // We don't return an error here as the auth account was created successfully
+        }
+      }
+
+      // Also create or update the profile in the profiles table
+      const { error: profilesError } = await supabase.from("profiles").upsert(
+        {
+          id: data.user.id,
+          full_name: userData.fullName,
+          email: userData.email,
+          role: "customer", // Default role
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      );
+
+      if (profilesError) {
+        console.error("Error creating/updating profile:", profilesError);
       }
     } catch (err) {
       console.error("Error in user profile creation:", err);

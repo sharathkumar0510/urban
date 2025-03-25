@@ -5,8 +5,16 @@ import { useEffect } from "react";
 
 export function TempoInit() {
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_TEMPO) {
-      TempoDevtools.init();
+    if (
+      process.env.NEXT_PUBLIC_TEMPO &&
+      typeof TempoDevtools !== "undefined" &&
+      TempoDevtools?.init
+    ) {
+      try {
+        TempoDevtools.init();
+      } catch (error) {
+        console.error("Error initializing TempoDevtools:", error);
+      }
     }
   }, []);
 

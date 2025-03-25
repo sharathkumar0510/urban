@@ -1,10 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import MainNavbar from "@/modules/layout/components/main-navbar";
 import MainFooter from "@/modules/layout/components/main-footer";
-import HeroCarousel from "@/modules/home/components/hero-carousel";
+import dynamic from "next/dynamic";
 import CtaSection from "@/modules/home/components/cta-section";
 import ServiceList from "@/modules/services/components/service-list";
 import FeatureList from "@/modules/services/components/feature-list";
+
+const HeroCarousel = dynamic(
+  () => import("@/modules/home/components/hero-carousel"),
+  { ssr: false },
+);
+
+export const revalidate = 3600; // Revalidate at most once per hour
 
 export default async function Home() {
   const supabase = await createClient();
